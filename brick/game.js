@@ -42,7 +42,7 @@ const stageConfigs = [
   { rows: 7, cols: 10, pattern: (r, c) => (r === 6 && c === 5 ? 1 : 0) }, // stage5: 중앙 하단 1개
   { rows: 4, cols: 8, pattern: (r, c) => 1 },
   { rows: 7, cols: 10, pattern: (r, c) => (r === 6 && (c === 4 || c === 5) ? 1 : 0) }, // stage7: 하단 중앙 2개
-  { rows: 8, cols: 10, pattern: (r, c) => (r === 7 && c === 5 ? 1 : 0) }, // stage8: 하단 중앙 1개
+  { rows: 8, cols: 10, pattern: (r, c) => (r === 5 && (c === 2 || c === 5 || c === 8) ? 1 : 0) }, // stage8: 띄엄띄엄 3개
   { rows: 7, cols: 10, pattern: (r, c) => (r === 6 && c === 5 ? 1 : 0) }, // stage9: 하단 중앙 1개
   { rows: 8, cols: 10, pattern: (r, c) => (r === 7 && c === 5 ? 1 : 0) }, // stage10: 하단 중앙 1개
 ];
@@ -69,42 +69,11 @@ const brickColors = [
   '#33D1FF'  // 10열
 ];
 
-// 모바일 대응: 캔버스 크기 자동 조정 및 동적 크기 계산
-function resizeCanvas() {
-  const w = Math.min(window.innerWidth, window.innerHeight * 0.666);
-  const h = w * 2 / 3;
-  canvas.width = w;
-  canvas.height = h;
-  updateSizes();
-}
-function updateSizes() {
-  brickPadding = Math.max(4, Math.floor(canvas.width * 0.01));
-  brickWidth = (canvas.width - (brickColumnCount + 1) * brickPadding) / brickColumnCount;
-  brickHeight = Math.max(16, Math.floor(canvas.height * 0.06));
-  paddleWidth = Math.max(50, Math.floor(canvas.width * 0.2));
-  paddleHeight = Math.max(10, Math.floor(canvas.height * 0.03));
-  ballRadius = Math.max(8, Math.floor(canvas.width * 0.025));
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-// 터치로 패들 이동
-canvas.addEventListener('touchmove', function(e) {
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  let x = touch.clientX - rect.left;
-  paddleX = x - paddleWidth / 2;
-  if (paddleX < 0) paddleX = 0;
-  if (paddleX > canvas.width - paddleWidth) paddleX = canvas.width - paddleWidth;
-  e.preventDefault();
-});
-
 // 벽돌 배열 생성 함수 (brickCount 계산 추가)
 function createBricksForStage(stageIdx) {
   const config = stageConfigs[stageIdx];
   brickRowCount = config.rows;
   brickColumnCount = config.cols;
-  updateSizes();
   bricks = [];
   brickCount = 0;
   for(let c=0; c<brickColumnCount; c++) {
