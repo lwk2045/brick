@@ -333,6 +333,9 @@ function playBonusLifeSound() {
     if(count < 5) {
       brickSound.currentTime = 0;
       brickSound.play();
+      if (window.navigator && navigator.vibrate) {
+        navigator.vibrate(30);
+      }
       count++;
       setTimeout(play, 200);
     }
@@ -363,6 +366,9 @@ function collisionDetection() {
           brickCount--;
           brickSound.currentTime = 0;
           brickSound.play();
+          if (window.navigator && navigator.vibrate) {
+            navigator.vibrate(30);
+          }
         }
       }
     }
