@@ -38,8 +38,8 @@ const brickSound = new Audio('audio/brick.mp3');
 
 // 2. 스테이지별 벽돌 구성 (10스테이지로 확장)
 const stageConfigs = [
-  // stage1: 기본 직사각형
-  { rows: 6, cols: 12, pattern: (r, c) => 1 },
+  // stage1: 기본 직사각형 (맨 윗줄 제거, 12열째 블록 없음)
+  { rows: 5, cols: 12, pattern: (r, c) => c !== 11 ? 1 : 0 },
   // stage2: 계단형
   { rows: 6, cols: 12, pattern: (r, c) => c >= r ? 1 : 0 },
   // stage3: 피라미드
@@ -84,9 +84,9 @@ const brickColors = [
 
 // 모바일 대응: 캔버스 크기 자동 조정 및 동적 크기 계산
 function resizeCanvas() {
-  // 9:16 세로형 비율, 최대 100vw, 100vh
+  // 9:16 세로형 비율, 최대 100vw, 70vh
   let w = window.innerWidth;
-  let h = window.innerHeight;
+  let h = window.innerHeight * 0.7;
   // 9:16 비율 유지
   if (h / w > 16/9) {
     h = w * 16 / 9;
@@ -171,6 +171,12 @@ document.addEventListener("mousedown", startBGMIfNeeded, { once: true });
 
 // 최초 생성
 createBricksForStage(stage-1);
+if (stage === 1) {
+  x = canvas.width / 2;
+  y = canvas.height / 2;
+  dx = 2;
+  dy = -2;
+}
 
 // 이벤트 리스너
 document.addEventListener("keydown", keyDownHandler, false);
@@ -261,9 +267,8 @@ function showEndScreen(type) {
   ctx.font = Math.max(Math.floor(canvas.height/20), 20) + 'px Arial';
   ctx.textBaseline = 'middle';
   ctx.fillText('클리어 시간: ' + formatTime(clearTime), canvas.width/2, canvas.height/4);
-  // 순위표
-  let rankings = JSON.parse(localStorage.getItem('brickRankings') || '[]');
   // 이름 입력 폼 (gameover에서만)
+  let rankings = JSON.parse(localStorage.getItem('brickRankings') || '[]');
   if(type === 'gameover' && !document.getElementById('nameInputForm') && !window._nameInputDone) {
     const form = document.createElement('form');
     form.id = 'nameInputForm';
@@ -286,22 +291,13 @@ function showEndScreen(type) {
       localStorage.setItem('brickRankings', JSON.stringify(rankings));
       document.body.removeChild(form);
       window._nameInputDone = true;
-      // 이름 입력 후 바로 명예의 전당 갱신
       setTimeout(() => showEndScreen('gameover'), 0);
     };
     setTimeout(() => { document.getElementById('nameInput').focus(); }, 100);
   }
-  // 기존 랭킹 기록을 00분 00초(0초)로 초기화
-  if(!localStorage.getItem('brickRankingsReset')) {
-    let oldRankings = JSON.parse(localStorage.getItem('brickRankings') || '[]');
-    if(oldRankings.length > 0) {
-      oldRankings = oldRankings.map(r => ({...r, clearTime: 0}));
-      localStorage.setItem('brickRankings', JSON.stringify(oldRankings));
-    }
-    localStorage.setItem('brickRankingsReset', '1');
-  }
   ctx.font = Math.max(Math.floor(canvas.height/28), 16) + 'px Arial';
   ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
   ctx.fillText('명예의 전당', canvas.width/2, canvas.height/3);
   for(let i=0; i<rankings.length; i++) {
     const r = rankings[i];
