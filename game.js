@@ -30,6 +30,9 @@ let bgm = null; // 배경음악 객체
 
 let stageTransitioning = false;
 
+let isGameEnded = false;
+let clearTime = 0;
+
 // 1. 오디오 객체 생성
 const brickSound = new Audio('audio/brick.mp3');
 
@@ -39,12 +42,12 @@ const stageConfigs = [
   { rows: 4, cols: 7, pattern: (r, c) => (r + c) % 2 === 0 ? 1 : 0 },
   { rows: 5, cols: 7, pattern: (r, c) => (r % 2 === 0 ? 1 : (c % 2 === 0 ? 1 : 0)) },
   { rows: 6, cols: 8, pattern: (r, c) => (r + c) % 3 !== 0 ? 1 : 0 },
-  { rows: 7, cols: 10, pattern: (r, c) => (r === 6 && c === 5 ? 1 : 0) }, // stage5: 중앙 하단 1개
+  { rows: 7, cols: 10, pattern: (r, c) => (r + c) % 2 === 0 ? 1 : 0 }, // stage5: 여러개
   { rows: 4, cols: 8, pattern: (r, c) => 1 },
-  { rows: 7, cols: 10, pattern: (r, c) => (r === 6 && (c === 4 || c === 5) ? 1 : 0) }, // stage7: 하단 중앙 2개
-  { rows: 8, cols: 10, pattern: (r, c) => (r === 7 && c === 5 ? 1 : 0) }, // stage8: 하단 중앙 1개
-  { rows: 7, cols: 10, pattern: (r, c) => (r === 6 && c === 5 ? 1 : 0) }, // stage9: 하단 중앙 1개
-  { rows: 8, cols: 10, pattern: (r, c) => (r === 7 && c === 5 ? 1 : 0) }, // stage10: 하단 중앙 1개
+  { rows: 7, cols: 10, pattern: (r, c) => (r % 2 === 0 ? 1 : (c % 2 === 0 ? 1 : 0)) }, // stage7: 여러개
+  { rows: 8, cols: 10, pattern: (r, c) => (r + c) % 3 !== 0 ? 1 : 0 }, // stage8: 여러개
+  { rows: 7, cols: 10, pattern: (r, c) => (r * c) % 2 === 0 ? 1 : 0 }, // stage9: 여러개
+  { rows: 8, cols: 10, pattern: (r, c) => (r + c) % 2 === 0 ? 1 : 0 }, // stage10: 여러개
 ];
 let stage = 1;
 const maxStage = stageConfigs.length;
@@ -165,7 +168,29 @@ function keyUpHandler(e) {
   else if(e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
 }
 
-// 벽돌 그리기
+// 1. 시간 포맷 변환 함수
+function formatTime(sec) {
+  sec = Math.floor(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m.toString().padStart(2, '0')}분 ${s.toString().padStart(2, '0')}초`;
+}
+
+// 2. 스톱워치 변수
+let stopwatchStart = Date.now();
+function drawStopwatch() {
+  const now = isGameEnded ? stopwatchStart + clearTime*1000 : Date.now();
+  let elapsed = Math.floor((now - stopwatchStart) / 1000);
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  ctx.font = 'bold 18px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`,
+    100, 22);
+}
+
+// 3. drawBricks에서 블록 색상 녹색
 function drawBricks() {
   for(let c=0; c<brickColumnCount; c++) {
     for(let r=0; r<brickRowCount; r++) {
@@ -205,28 +230,99 @@ function drawPaddle() {
   ctx.closePath();
 }
 
-// 점수 그리기
+// 4. 엔딩 화면 녹색 바탕, 흰색 글씨, 시간 포맷 적용
+function showEndScreen(type) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = (type === 'clear') ? '#2ecc40' : '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = 'bold ' + Math.floor(canvas.height/10) + 'px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(type === 'clear' ? 'ALL CLEAR!' : 'GAME OVER', canvas.width/2, canvas.height/8);
+  ctx.font = Math.floor(canvas.height/20) + 'px Arial';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('클리어 시간: ' + formatTime(clearTime), canvas.width/2, canvas.height/4);
+  // 순위표
+  let rankings = JSON.parse(localStorage.getItem('brickRankings') || '[]');
+  // 이름 입력 폼 (gameover에서만)
+  if(type === 'gameover' && !document.getElementById('nameInputForm') && !window._nameInputDone) {
+    const form = document.createElement('form');
+    form.id = 'nameInputForm';
+    form.style.position = 'fixed';
+    form.style.left = '50%';
+    form.style.top = '40%';
+    form.style.transform = 'translate(-50%, -50%)';
+    form.style.zIndex = 1000;
+    form.style.background = 'rgba(44,204,64,0.95)';
+    form.style.padding = '20px';
+    form.style.borderRadius = '10px';
+    form.innerHTML = `<label style='color:#fff;font-size:18px;'>이름을 입력하세요: <input id='nameInput' style='font-size:18px;'/></label> <button type='submit' style='font-size:18px;'>확인</button>`;
+    document.body.appendChild(form);
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('nameInput').value || '';
+      rankings.push({ name, clearTime, date: new Date().toLocaleString() });
+      rankings.sort((a, b) => parseFloat(b.clearTime) - parseFloat(a.clearTime));
+      rankings = rankings.slice(0, 10);
+      localStorage.setItem('brickRankings', JSON.stringify(rankings));
+      document.body.removeChild(form);
+      window._nameInputDone = true;
+      showEndScreen('gameover');
+    };
+    setTimeout(() => { document.getElementById('nameInput').focus(); }, 100);
+  }
+  // 기존 랭킹 기록을 00분 00초(0초)로 초기화
+  if(!localStorage.getItem('brickRankingsReset')) {
+    let oldRankings = JSON.parse(localStorage.getItem('brickRankings') || '[]');
+    if(oldRankings.length > 0) {
+      oldRankings = oldRankings.map(r => ({...r, clearTime: 0}));
+      localStorage.setItem('brickRankings', JSON.stringify(oldRankings));
+    }
+    localStorage.setItem('brickRankingsReset', '1');
+  }
+  ctx.font = Math.floor(canvas.height/28) + 'px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('명예의 전당', canvas.width/2, canvas.height/3);
+  for(let i=0; i<rankings.length; i++) {
+    const r = rankings[i];
+    ctx.fillText(`${i+1}위: ${r.name || '---'} ${formatTime(r.clearTime)}`,
+      canvas.width/2, canvas.height/3 + (i+1)*canvas.height/22);
+  }
+}
+
+// 5. drawScore, drawStage, drawStopwatch 위치 조정
 function drawScore() {
   ctx.font = "16px Arial";
   ctx.textAlign = "left";
-  // 파란색 배경 블록
-  ctx.fillStyle = "#2196f3";
-  ctx.fillRect(4, 4, 80, 24);
-  // 흰색 글씨
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = "#fff"; // 흰색 글자
   ctx.fillText("점수: "+score, 8, 22);
 }
-
-// 목숨 그리기
-function drawLives() {
-  ctx.font = "16px Arial";
-  ctx.textAlign = "right";
-  // 빨간색 배경 블록
-  ctx.fillStyle = "#e53935";
-  ctx.fillRect(canvas.width-84, 4, 80, 24);
-  // 흰색 글씨
+function drawStage() {
+  ctx.font = "bold 22px Arial";
   ctx.fillStyle = "#fff";
-  ctx.fillText("목숨: "+lives, canvas.width-8, 22);
+  ctx.textAlign = "center";
+  ctx.fillText(`STAGE ${stage}`, canvas.width/2, 22);
+}
+
+// 6. 3스테이지 클리어 시 목숨+1, brick.mp3 5회 울림
+function playBonusLifeSound() {
+  let count = 0;
+  function play() {
+    if(count < 5) {
+      brickSound.currentTime = 0;
+      brickSound.play();
+      count++;
+      setTimeout(play, 200);
+    }
+  }
+  play();
+}
+
+// 공 속도 증가 로직: 스테이지가 올라갈 때마다 2%씩 증가
+function increaseBallSpeed() {
+  dx *= 1.02;
+  dy *= 1.02;
 }
 
 // 충돌 체크 (brickCount로 스테이지 클리어 판정)
@@ -265,35 +361,41 @@ function collisionDetection() {
   }
   if(brickCount === 0 && !stageTransitioning) {
     stageTransitioning = true;
-    console.log('brickCount 0! stage:', stage, 'stageTransitioning set true');
     setTimeout(() => {
-      console.log('setTimeout fired! stage:', stage);
       if(stage < maxStage) {
+        // 3스테이지 클리어 보너스
+        if(stage === 3) {
+          lives++;
+          playBonusLifeSound();
+        }
         stage++;
         createBricksForStage(stage-1);
         playStageBGM(stage);
+        increaseBallSpeed();
         x = canvas.width/2;
         y = canvas.height-30;
-        dx = 2;
-        dy = -2;
+        dx = Math.sign(dx) * Math.abs(dx);
+        dy = Math.sign(dy) * Math.abs(dy);
         paddleX = (canvas.width-paddleWidth)/2;
         stageTransitioning = false;
       } else {
         if(bgm) { bgm.pause(); }
-        endGame();
+        endGame('clear');
       }
     }, 300);
   }
 }
 
-// 메인 draw 함수
+// draw 함수에 drawStopwatch 호출 추가
 function draw() {
+  if(isGameEnded) return;
   ctx.drawImage(bgImages[stage-1], 0, 0, canvas.width, canvas.height);
+  drawScore();
   drawStage();
+  drawStopwatch();
   drawBricks();
   drawBall();
   drawPaddle();
-  drawScore();
   drawLives();
   collisionDetection();
 
@@ -307,7 +409,7 @@ function draw() {
       lives--;
       if(!lives) {
         if(bgm) { bgm.pause(); }
-        endGame();
+        endGame('gameover');
       } else {
         x = canvas.width/2;
         y = canvas.height-30;
@@ -327,19 +429,31 @@ function draw() {
   requestAnimationFrame(draw);
 }
 
-// draw 함수에 drawStage 추가
-function drawStage() {
-  ctx.font = "bold 22px Arial";
-  ctx.fillStyle = "#fff";
-  ctx.textAlign = "center";
-  ctx.fillText(`STAGE ${stage}`, canvas.width/2, 28);
+// 목숨 그리기
+function drawLives() {
+  ctx.font = "16px Arial";
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#fff"; // 흰색 글자
+  ctx.fillText("목숨: "+lives, canvas.width-8, 22);
 }
 
-// 게임 종료 및 랭킹 처리
-function endGame() {
+function endGame(type) {
+  isGameEnded = true;
   if(bgm) { bgm.pause(); }
-  alert('게임 종료!');
-  document.location.reload();
+  const endTime = Date.now();
+  clearTime = ((endTime - startTime) / 1000).toFixed(2);
+  let rankings = JSON.parse(localStorage.getItem('brickRankings') || '[]');
+  if(type === 'clear') {
+    let name = '';
+    if(rankings.length < 10 || clearTime > rankings[rankings.length-1].clearTime) {
+      name = prompt('신기록! 이름을 입력하세요:') || '';
+      rankings.push({ name, clearTime, date: new Date().toLocaleString() });
+      rankings.sort((a, b) => parseFloat(b.clearTime) - parseFloat(a.clearTime));
+      rankings = rankings.slice(0, 10);
+      localStorage.setItem('brickRankings', JSON.stringify(rankings));
+    }
+  }
+  showEndScreen(type);
 }
 
 // 게임 시작 시간 기록
