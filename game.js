@@ -354,12 +354,13 @@ function collisionDetection() {
     for(let r=0; r<brickRowCount; r++) {
       let b = bricks[c][r];
       if(b.status === 1) {
-        if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+        let brickX = (c*(brickWidth+brickPadding)) + brickOffsetLeft;
+        let brickY = (r*(brickHeight+brickPadding)) + brickOffsetTop;
+        if(x > brickX && x < brickX+brickWidth && y > brickY && y < brickY+brickHeight) {
           dy = -dy;
           b.status = 0;
           score++;
           brickCount--;
-          // 벽돌이 깨질 때마다 소리 재생
           brickSound.currentTime = 0;
           brickSound.play();
         }
