@@ -350,7 +350,6 @@ function increaseBallSpeed() {
 function collisionDetection() {
   console.log('collisionDetection: stage', stage, 'brickCount', brickCount, 'stageTransitioning', stageTransitioning);
   if (stageTransitioning) return;
-  let hit = false;
   for(let c=0; c<brickColumnCount; c++) {
     for(let r=0; r<brickRowCount; r++) {
       let b = bricks[c][r];
@@ -360,7 +359,9 @@ function collisionDetection() {
           b.status = 0;
           score++;
           brickCount--;
-          hit = true;
+          // 벽돌이 깨질 때마다 소리 재생
+          brickSound.currentTime = 0;
+          brickSound.play();
         }
       }
     }
@@ -375,10 +376,6 @@ function collisionDetection() {
         }
       }
     }
-  }
-  if(hit) {
-    brickSound.currentTime = 0;
-    brickSound.play();
   }
   if(brickCount === 0 && !stageTransitioning) {
     stageTransitioning = true;
