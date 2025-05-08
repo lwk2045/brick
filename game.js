@@ -38,16 +38,26 @@ const brickSound = new Audio('audio/brick.mp3');
 
 // 2. 스테이지별 벽돌 구성 (10스테이지로 확장)
 const stageConfigs = [
-  { rows: 3, cols: 5, pattern: (r, c) => 1 },
-  { rows: 4, cols: 7, pattern: (r, c) => (r + c) % 2 === 0 ? 1 : 0 },
-  { rows: 5, cols: 7, pattern: (r, c) => (r % 2 === 0 ? 1 : (c % 2 === 0 ? 1 : 0)) },
-  { rows: 6, cols: 8, pattern: (r, c) => (r + c) % 3 !== 0 ? 1 : 0 },
-  { rows: 7, cols: 10, pattern: (r, c) => (r + c) % 2 === 0 ? 1 : 0 }, // stage5: 여러개
-  { rows: 4, cols: 8, pattern: (r, c) => 1 },
-  { rows: 7, cols: 10, pattern: (r, c) => (r % 2 === 0 ? 1 : (c % 2 === 0 ? 1 : 0)) }, // stage7: 여러개
-  { rows: 8, cols: 10, pattern: (r, c) => (r + c) % 3 !== 0 ? 1 : 0 }, // stage8: 여러개
-  { rows: 7, cols: 10, pattern: (r, c) => (r * c) % 2 === 0 ? 1 : 0 }, // stage9: 여러개
-  { rows: 8, cols: 10, pattern: (r, c) => (r + c) % 2 === 0 ? 1 : 0 }, // stage10: 여러개
+  // stage1: 기본 직사각형
+  { rows: 6, cols: 12, pattern: (r, c) => 1 },
+  // stage2: 계단형
+  { rows: 6, cols: 12, pattern: (r, c) => c >= r ? 1 : 0 },
+  // stage3: 피라미드
+  { rows: 7, cols: 13, pattern: (r, c) => Math.abs(c-6) <= r ? 1 : 0 },
+  // stage4: X자
+  { rows: 8, cols: 12, pattern: (r, c) => (r === c || r + c === 11) ? 1 : 0 },
+  // stage5: 테두리만
+  { rows: 8, cols: 14, pattern: (r, c) => (r === 0 || r === 7 || c === 0 || c === 13) ? 1 : 0 },
+  // stage6: 중앙 십자
+  { rows: 9, cols: 13, pattern: (r, c) => (r === 4 || c === 6) ? 1 : 0 },
+  // stage7: 2중 피라미드
+  { rows: 9, cols: 13, pattern: (r, c) => (Math.abs(c-6) <= r && r < 5) || (Math.abs(c-6) <= 8-r && r >= 5) ? 1 : 0 },
+  // stage8: 좌우 대칭(2개의 삼각형)
+  { rows: 8, cols: 14, pattern: (r, c) => (c <= r || c >= 13-r) ? 1 : 0 },
+  // stage9: 중앙 구멍
+  { rows: 8, cols: 14, pattern: (r, c) => (r < 2 || r > 5 || c < 3 || c > 10) ? 1 : ((r === 2 || r === 5 || c === 3 || c === 10) ? 1 : 0) },
+  // stage10: 복합 패턴(테두리+X자)
+  { rows: 9, cols: 15, pattern: (r, c) => (r === 0 || r === 8 || c === 0 || c === 14 || r === c || r + c === 14) ? 1 : 0 },
 ];
 let stage = 1;
 const maxStage = stageConfigs.length;
@@ -268,7 +278,8 @@ function showEndScreen(type) {
       localStorage.setItem('brickRankings', JSON.stringify(rankings));
       document.body.removeChild(form);
       window._nameInputDone = true;
-      showEndScreen('gameover');
+      // 이름 입력 후 바로 명예의 전당 갱신
+      setTimeout(() => showEndScreen('gameover'), 0);
     };
     setTimeout(() => { document.getElementById('nameInput').focus(); }, 100);
   }
