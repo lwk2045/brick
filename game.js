@@ -252,12 +252,13 @@ function showEndScreen(type) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = (type === 'clear') ? '#2ecc40' : '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.font = 'bold ' + Math.floor(canvas.height/10) + 'px Arial';
+  const baseFont = Math.max(Math.floor(canvas.height/10), 32);
+  ctx.font = 'bold ' + baseFont + 'px Arial';
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillText(type === 'clear' ? 'ALL CLEAR!' : 'GAME OVER', canvas.width/2, canvas.height/8);
-  ctx.font = Math.floor(canvas.height/20) + 'px Arial';
+  ctx.font = Math.max(Math.floor(canvas.height/20), 20) + 'px Arial';
   ctx.textBaseline = 'middle';
   ctx.fillText('클리어 시간: ' + formatTime(clearTime), canvas.width/2, canvas.height/4);
   // 순위표
@@ -299,7 +300,7 @@ function showEndScreen(type) {
     }
     localStorage.setItem('brickRankingsReset', '1');
   }
-  ctx.font = Math.floor(canvas.height/28) + 'px Arial';
+  ctx.font = Math.max(Math.floor(canvas.height/28), 16) + 'px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('명예의 전당', canvas.width/2, canvas.height/3);
   for(let i=0; i<rankings.length; i++) {
