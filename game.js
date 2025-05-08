@@ -33,6 +33,8 @@ let stageTransitioning = false;
 let isGameEnded = false;
 let clearTime = 0;
 
+let isBallOnPaddle = false;
+
 // 1. 오디오 객체 생성
 const brickSound = new Audio('audio/brick.mp3');
 
@@ -112,10 +114,13 @@ resizeCanvas();
 canvas.addEventListener('touchmove', function(e) {
   const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
-  let x = touch.clientX - rect.left;
-  paddleX = x - paddleWidth / 2;
+  let xTouch = touch.clientX - rect.left;
+  paddleX = xTouch - paddleWidth / 2;
   if (paddleX < 0) paddleX = 0;
   if (paddleX > canvas.width - paddleWidth) paddleX = canvas.width - paddleWidth;
+  if(isBallOnPaddle) {
+    isBallOnPaddle = false;
+  }
   e.preventDefault();
 });
 
@@ -176,10 +181,16 @@ if (stage === 1) {
   y = canvas.height / 2;
   dx = 2.4;
   dy = -2.4;
+  isBallOnPaddle = true;
 }
 
 // 이벤트 리스너
-document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keydown", function(e) {
+  keyDownHandler(e);
+  if(isBallOnPaddle && (e.key === "Left" || e.key === "ArrowLeft" || e.key === "Right" || e.key === "ArrowRight")) {
+    isBallOnPaddle = false;
+  }
+}, false);
 document.addEventListener("keyup", keyUpHandler, false);
 
 function keyDownHandler(e) {
@@ -366,9 +377,11 @@ function collisionDetection() {
           brickCount--;
           brickSound.currentTime = 0;
           brickSound.play();
-          if (window.navigator && navigator.vibrate) {
-            navigator.vibrate(30);
-          }
+          try {
+            if (window.navigator && navigator.vibrate) {
+              navigator.vibrate(30);
+            }
+          } catch(e) {}
         }
       }
     }
@@ -398,10 +411,11 @@ function collisionDetection() {
         playStageBGM(stage);
         increaseBallSpeed();
         x = canvas.width/2;
-        y = canvas.height-30;
-        dx = Math.sign(dx) * Math.abs(dx);
-        dy = Math.sign(dy) * Math.abs(dy);
+        y = canvas.height - paddleHeight - ballRadius - 2; // 패들 위에 위치
+        dx = 2.4;
+        dy = -2.4;
         paddleX = (canvas.width-paddleWidth)/2;
+        isBallOnPaddle = true;
         stageTransitioning = false;
       } else {
         if(bgm) { bgm.pause(); }
@@ -422,6 +436,10 @@ function draw() {
   drawBall();
   drawPaddle();
   drawLives();
+  if(isBallOnPaddle) {
+    x = paddleX + paddleWidth/2;
+    y = canvas.height - paddleHeight - ballRadius - 2;
+  }
   collisionDetection();
 
   // 벽 충돌
@@ -449,8 +467,10 @@ function draw() {
   if(rightPressed && paddleX < canvas.width-paddleWidth) paddleX += 7;
   else if(leftPressed && paddleX > 0) paddleX -= 7;
 
-  x += dx;
-  y += dy;
+  if(!isBallOnPaddle) {
+    x += dx;
+    y += dy;
+  }
   requestAnimationFrame(draw);
 }
 
