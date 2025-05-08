@@ -86,7 +86,7 @@ const brickColors = [
 function resizeCanvas() {
   // 9:16 세로형 비율, 최대 100vw, 70vh
   let w = window.innerWidth;
-  let h = window.innerHeight * 0.7;
+  let h = window.innerHeight * 0.6;
   // 9:16 비율 유지
   if (h / w > 16/9) {
     h = w * 16 / 9;
