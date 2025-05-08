@@ -256,7 +256,7 @@ function drawPaddle() {
 // 4. 엔딩 화면 녹색 바탕, 흰색 글씨, 시간 포맷 적용
 function showEndScreen(type) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = (type === 'clear') ? '#2ecc40' : '#000';
+  ctx.fillStyle = '#2ecc40';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const baseFont = Math.max(Math.floor(canvas.height/10), 32);
   ctx.font = 'bold ' + baseFont + 'px Arial';
@@ -295,6 +295,12 @@ function showEndScreen(type) {
     };
     setTimeout(() => { document.getElementById('nameInput').focus(); }, 100);
   }
+  // 명예의 전당 배경(녹색)
+  const hallY = canvas.height/3 - 10;
+  const hallH = (11 * canvas.height/22) + 40;
+  ctx.fillStyle = '#2ecc40';
+  ctx.fillRect(canvas.width/2 - canvas.width*0.4, hallY, canvas.width*0.8, hallH);
+  // 순위표(흰색 폰트)
   ctx.font = Math.max(Math.floor(canvas.height/28), 16) + 'px Arial';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
