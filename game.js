@@ -136,17 +136,15 @@ function createBricksForStage(stageIdx) {
   brickColumnCount = config.cols;
   updateSizes();
   bricks = [];
-  brickCount = 0;
   for(let c=0; c<brickColumnCount; c++) {
     bricks[c] = [];
     for(let r=0; r<brickRowCount; r++) {
       const status = config.pattern(r, c);
       bricks[c][r] = { x: 0, y: 0, status };
-      if(status === 1) brickCount++;
     }
   }
   // 진단용 콘솔 출력
-  console.log('=== 스테이지', stage, 'brickCount:', brickCount, '===');
+  console.log('=== 스테이지', stage, '===' );
   for(let c=0; c<brickColumnCount; c++) {
     let col = [];
     for(let r=0; r<brickRowCount; r++) {
@@ -367,7 +365,6 @@ function increaseBallSpeed() {
 
 // 충돌 체크 (brickCount로 스테이지 클리어 판정)
 function collisionDetection() {
-  console.log('collisionDetection: stage', stage, 'brickCount', brickCount, 'stageTransitioning', stageTransitioning);
   if (stageTransitioning) return;
   let hit = false;
   for(let c=0; c<brickColumnCount; c++) {
@@ -379,7 +376,6 @@ function collisionDetection() {
         if(x > brickX && x < brickX+brickWidth && y > brickY && y < brickY+brickHeight) {
           b.status = 0;
           score++;
-          brickCount--;
           hit = true;
           try {
             new Audio('audio/brick.mp3').play();
@@ -394,22 +390,21 @@ function collisionDetection() {
   if(hit) {
     dy = -dy;
   }
-  if(brickCount <= 5 && brickCount > 0) {
-    console.log('남은 벽돌 좌표 및 status:');
-    for(let c=0; c<brickColumnCount; c++) {
-      for(let r=0; r<brickRowCount; r++) {
-        let b = bricks[c][r];
-        if(b.status === 1) {
-          console.log(`col:${c}, row:${r}, x:${b.x}, y:${b.y}, status:${b.status}`);
-        }
+  // 남은 블록이 하나도 없을 때만 스테이지 클리어
+  let anyBlockLeft = false;
+  for(let c=0; c<brickColumnCount; c++) {
+    for(let r=0; r<brickRowCount; r++) {
+      if(bricks[c][r].status === 1) {
+        anyBlockLeft = true;
+        break;
       }
     }
+    if(anyBlockLeft) break;
   }
-  if(brickCount === 0 && !stageTransitioning) {
+  if(!anyBlockLeft && !stageTransitioning) {
     stageTransitioning = true;
     setTimeout(() => {
       if(stage < maxStage) {
-        // 3, 7스테이지 클리어 보너스
         if(stage === 3 || stage === 7) {
           lives++;
           playBonusLifeSound();
@@ -441,6 +436,129 @@ function draw() {
   drawStage();
   drawStopwatch();
   drawBricks();
+  // 1스테이지: 제일 아래행 밑에 오른쪽만 비어있는 쇠막대(장애물) 그리기
+  if(stage === 1) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8; // 패들 위, 공 시작 위치 위
+    ctx.save();
+    ctx.fillStyle = '#888';
+    ctx.fillRect(0, barY, canvas.width * 0.8, barHeight); // 왼쪽 80%만
+    ctx.restore();
+  }
+  // 2스테이지: 하단에 - - - 형태(3등분, 가운데 띄우기) 쇠막대 장애물 그리기
+  if(stage === 2) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    const segW = canvas.width / 3;
+    ctx.fillRect(0, barY, segW * 0.8, barHeight); // 왼쪽 막대(80% 길이)
+    ctx.fillRect(segW * 2.2, barY, segW * 0.8, barHeight); // 오른쪽 막대(80% 길이)
+    ctx.restore();
+  }
+  // 3스테이지: 가운데만 막대
+  if(stage === 3) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    ctx.fillRect(canvas.width*0.3, barY, canvas.width*0.4, barHeight);
+    ctx.restore();
+  }
+  // 4스테이지: 양 끝만 막대
+  if(stage === 4) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    ctx.fillRect(0, barY, canvas.width*0.2, barHeight);
+    ctx.fillRect(canvas.width*0.8, barY, canvas.width*0.2, barHeight);
+    ctx.restore();
+  }
+  // 5스테이지: 4등분, 2,4번째만 막대
+  if(stage === 5) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    const segW = canvas.width / 4;
+    ctx.fillRect(segW, barY, segW*0.8, barHeight); // 2번째
+    ctx.fillRect(segW*3, barY, segW*0.8, barHeight); // 4번째
+    ctx.restore();
+  }
+  // 6스테이지: 대각선(왼쪽 위~오른쪽 아래)
+  if(stage === 6) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    ctx.save();
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = barHeight;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height*0.85);
+    ctx.lineTo(canvas.width, canvas.height*0.95);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 7스테이지: 계단형(오른쪽으로 점점 올라감)
+  if(stage === 7) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    ctx.save();
+    ctx.fillStyle = '#888';
+    for(let i=0; i<5; i++) {
+      ctx.fillRect(i*canvas.width/5, canvas.height*0.92 - i*10, canvas.width/5*0.8, barHeight);
+    }
+    ctx.restore();
+  }
+  // 8스테이지: U자형
+  if(stage === 8) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    ctx.fillRect(0, barY, canvas.width*0.2, barHeight);
+    ctx.fillRect(canvas.width*0.4, barY, canvas.width*0.2, barHeight);
+    ctx.fillRect(canvas.width*0.8, barY, canvas.width*0.2, barHeight);
+    ctx.restore();
+  }
+  // 9스테이지: W자형(5등분, 1,3,5번째만 막대)
+  if(stage === 9) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    const barY = canvas.height - paddleHeight - ballRadius - 2 - barHeight - 8;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    const segW = canvas.width / 5;
+    ctx.fillRect(0, barY, segW*0.8, barHeight); // 1번째
+    ctx.fillRect(segW*2, barY, segW*0.8, barHeight); // 3번째
+    ctx.fillRect(segW*4, barY, segW*0.8, barHeight); // 5번째
+    ctx.restore();
+  }
+  // 10스테이지: 블록을 감싸는 미로 형태의 쇠막대
+  if(stage === 10) {
+    const barHeight = Math.max(10, Math.floor(canvas.height * 0.025));
+    // 블록 영역 계산 (rows: 7, cols: 11)
+    const blockRows = 7, blockCols = 11;
+    const blockTop = brickOffsetTop;
+    const blockLeft = brickOffsetLeft;
+    const blockW = (canvas.width - (blockCols + 1) * brickPadding) / blockCols;
+    const blockH = Math.max(16, Math.floor(canvas.height * 0.06));
+    const blockAreaW = blockCols * (blockW + brickPadding) + brickPadding;
+    const blockAreaH = blockRows * (blockH + brickPadding) + brickPadding;
+    const mazeY = blockTop - brickPadding;
+    const mazeX = blockLeft - brickPadding;
+    ctx.save();
+    ctx.fillStyle = '#888';
+    // 바깥 테두리
+    ctx.fillRect(mazeX, mazeY, blockAreaW, barHeight); // 상단
+    ctx.fillRect(mazeX, mazeY, barHeight, blockAreaH); // 좌측
+    ctx.fillRect(mazeX + blockAreaW - barHeight, mazeY, barHeight, blockAreaH); // 우측
+    // 하단(출구 2개)
+    ctx.fillRect(mazeX, mazeY + blockAreaH - barHeight, blockAreaW*0.3, barHeight); // 좌측 하단
+    ctx.fillRect(mazeX + blockAreaW*0.7, mazeY + blockAreaH - barHeight, blockAreaW*0.3, barHeight); // 우측 하단
+    // 내부 가로 벽(중간에 구멍)
+    ctx.fillRect(mazeX + barHeight, mazeY + blockAreaH*0.4, blockAreaW*0.7, barHeight);
+    // 내부 세로 벽(중간에 구멍)
+    ctx.fillRect(mazeX + blockAreaW*0.5, mazeY + barHeight, barHeight, blockAreaH*0.5);
+    ctx.restore();
+  }
   drawBall();
   drawPaddle();
   drawLives();
