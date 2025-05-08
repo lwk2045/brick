@@ -40,15 +40,12 @@ const brickSound = new Audio('audio/brick.mp3');
 
 // 2. 스테이지별 벽돌 구성 (10스테이지로 확장)
 const stageConfigs = [
-  // 1. 스마일(Smile Face) (특이, 인상적)
-  { rows: 9, cols: 13, pattern: (r, c) => (
-    // 눈
-    (r === 2 && (c === 3 || c === 9)) ||
-    // 입
-    (r === 6 && c >= 4 && c <= 8) ||
-    (r === 7 && (c === 3 || c === 9)) ||
-    // 얼굴 테두리(타원)
-    (Math.pow((r-4)/4,2) + Math.pow((c-6)/6,2) <= 1.05)
+  // 1. 스마일(Smile Face) (특이, 인상적, 블록 수 조정)
+  { rows: 6, cols: 10, pattern: (r, c) => (
+    (r === 1 && (c === 2 || c === 7)) ||
+    (r === 4 && c >= 3 && c <= 6) ||
+    (r === 5 && (c === 2 || c === 7)) ||
+    (Math.pow((r-2.5)/2.5,2) + Math.pow((c-4.5)/4.5,2) <= 1.05)
   ) ? 1 : 0 },
   // 2. 피라미드 (쉬움)
   { rows: 7, cols: 13, pattern: (r, c) => Math.abs(c-6) <= r ? 1 : 0 },
@@ -66,8 +63,8 @@ const stageConfigs = [
   { rows: 9, cols: 15, pattern: (r, c) => (r === 0 || r === 8 || c === 0 || c === 14 || r === c || r + c === 14) ? 1 : 0 },
   // 9. 2중 피라미드 (어려움)
   { rows: 9, cols: 13, pattern: (r, c) => (Math.abs(c-6) <= r && r < 5) || (Math.abs(c-6) <= 8-r && r >= 5) ? 1 : 0 },
-  // 10. 아치형(Arch) (어려움, 추가)
-  { rows: 7, cols: 13, pattern: (r, c) => Math.abs(c-6) <= Math.floor(Math.sqrt(36 - (r-6)*(r-6))) ? 1 : 0 },
+  // 10. 아치형(Arch) (어려움, 블록 수 조정)
+  { rows: 7, cols: 11, pattern: (r, c) => Math.abs(c-5) <= Math.floor(Math.sqrt(25 - (r-6)*(r-6))) ? 1 : 0 },
 ];
 let stage = 1;
 const maxStage = stageConfigs.length;
@@ -145,17 +142,7 @@ function createBricksForStage(stageIdx) {
     for(let r=0; r<brickRowCount; r++) {
       const status = config.pattern(r, c);
       bricks[c][r] = { x: 0, y: 0, status };
-      if(status === 1) {
-        // 실제로 그려지는 위치가 캔버스 안에 있는 경우만 brickCount++
-        let brickX = (c*(brickWidth+brickPadding)) + brickOffsetLeft;
-        let brickY = (r*(brickHeight+brickPadding)) + brickOffsetTop;
-        if (
-          brickX >= 0 && brickX+brickWidth <= canvas.width &&
-          brickY >= 0 && brickY+brickHeight <= canvas.height
-        ) {
-          brickCount++;
-        }
-      }
+      if(status === 1) brickCount++;
     }
   }
   // 진단용 콘솔 출력
@@ -395,10 +382,9 @@ function collisionDetection() {
           brickCount--;
           hit = true;
           try {
-            brickSound.currentTime = 0.5;
-            brickSound.play();
+            new Audio('audio/brick.mp3').play();
             if (window.navigator && navigator.vibrate) {
-              navigator.vibrate(30);
+              navigator.vibrate([70]);
             }
           } catch(e) {}
         }
