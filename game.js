@@ -5,8 +5,8 @@ const ctx = canvas.getContext("2d");
 let ballRadius = 8;
 let x = canvas.width / 2;
 let y = canvas.height - 30;
-let dx = 2;
-let dy = -2;
+let dx = 2.4;
+let dy = -2.4;
 
 let paddleHeight = 10;
 let paddleWidth = 75;
@@ -174,8 +174,8 @@ createBricksForStage(stage-1);
 if (stage === 1) {
   x = canvas.width / 2;
   y = canvas.height / 2;
-  dx = 2;
-  dy = -2;
+  dx = 2.4;
+  dy = -2.4;
 }
 
 // 이벤트 리스너
@@ -342,8 +342,8 @@ function playBonusLifeSound() {
 
 // 공 속도 증가 로직: 스테이지가 올라갈 때마다 2%씩 증가
 function increaseBallSpeed() {
-  dx *= 1.02;
-  dy *= 1.02;
+  dx = Math.sign(dx) * (Math.abs(dx) + 55);
+  dy = Math.sign(dy) * (Math.abs(dy) + 55);
 }
 
 // 충돌 체크 (brickCount로 스테이지 클리어 판정)
@@ -434,8 +434,8 @@ function draw() {
       } else {
         x = canvas.width/2;
         y = canvas.height-30;
-        dx = 2;
-        dy = -2;
+        dx = 2.4;
+        dy = -2.4;
         paddleX = (canvas.width-paddleWidth)/2;
       }
     }
