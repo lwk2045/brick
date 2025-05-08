@@ -40,26 +40,34 @@ const brickSound = new Audio('audio/brick.mp3');
 
 // 2. 스테이지별 벽돌 구성 (10스테이지로 확장)
 const stageConfigs = [
-  // stage1: 기본 직사각형 (맨 윗줄 제거, 12열째 블록 없음)
-  { rows: 5, cols: 12, pattern: (r, c) => c !== 11 ? 1 : 0 },
-  // stage2: 계단형
-  { rows: 6, cols: 12, pattern: (r, c) => c >= r ? 1 : 0 },
-  // stage3: 피라미드
+  // 1. 스마일(Smile Face) (특이, 인상적)
+  { rows: 9, cols: 13, pattern: (r, c) => (
+    // 눈
+    (r === 2 && (c === 3 || c === 9)) ||
+    // 입
+    (r === 6 && c >= 4 && c <= 8) ||
+    (r === 7 && (c === 3 || c === 9)) ||
+    // 얼굴 테두리(타원)
+    (Math.pow((r-4)/4,2) + Math.pow((c-6)/6,2) <= 1.05)
+  ) ? 1 : 0 },
+  // 2. 피라미드 (쉬움)
   { rows: 7, cols: 13, pattern: (r, c) => Math.abs(c-6) <= r ? 1 : 0 },
-  // stage4: X자
-  { rows: 8, cols: 12, pattern: (r, c) => (r === c || r + c === 11) ? 1 : 0 },
-  // stage5: 테두리만
-  { rows: 8, cols: 14, pattern: (r, c) => (r === 0 || r === 7 || c === 0 || c === 13) ? 1 : 0 },
-  // stage6: 중앙 십자
-  { rows: 9, cols: 13, pattern: (r, c) => (r === 4 || c === 6) ? 1 : 0 },
-  // stage7: 2중 피라미드
-  { rows: 9, cols: 13, pattern: (r, c) => (Math.abs(c-6) <= r && r < 5) || (Math.abs(c-6) <= 8-r && r >= 5) ? 1 : 0 },
-  // stage8: 좌우 대칭(2개의 삼각형)
+  // 3. 좌우 대칭 삼각형 (쉬움~중간)
   { rows: 8, cols: 14, pattern: (r, c) => (c <= r || c >= 13-r) ? 1 : 0 },
-  // stage9: 중앙 구멍
+  // 4. 중앙 구멍 (중간)
   { rows: 8, cols: 14, pattern: (r, c) => (r < 2 || r > 5 || c < 3 || c > 10) ? 1 : ((r === 2 || r === 5 || c === 3 || c === 10) ? 1 : 0) },
-  // stage10: 복합 패턴(테두리+X자)
+  // 5. 테두리만 (중간)
+  { rows: 8, cols: 14, pattern: (r, c) => (r === 0 || r === 7 || c === 0 || c === 13) ? 1 : 0 },
+  // 6. X자 (중간~어려움)
+  { rows: 8, cols: 12, pattern: (r, c) => (r === c || r + c === 11) ? 1 : 0 },
+  // 7. 중앙 십자(크로스) (중간~어려움)
+  { rows: 9, cols: 13, pattern: (r, c) => (r === 4 || c === 6) ? 1 : 0 },
+  // 8. 복합(테두리+X자) (어려움)
   { rows: 9, cols: 15, pattern: (r, c) => (r === 0 || r === 8 || c === 0 || c === 14 || r === c || r + c === 14) ? 1 : 0 },
+  // 9. 2중 피라미드 (어려움)
+  { rows: 9, cols: 13, pattern: (r, c) => (Math.abs(c-6) <= r && r < 5) || (Math.abs(c-6) <= 8-r && r >= 5) ? 1 : 0 },
+  // 10. 아치형(Arch) (어려움, 추가)
+  { rows: 7, cols: 13, pattern: (r, c) => Math.abs(c-6) <= Math.floor(Math.sqrt(36 - (r-6)*(r-6))) ? 1 : 0 },
 ];
 let stage = 1;
 const maxStage = stageConfigs.length;
@@ -137,7 +145,17 @@ function createBricksForStage(stageIdx) {
     for(let r=0; r<brickRowCount; r++) {
       const status = config.pattern(r, c);
       bricks[c][r] = { x: 0, y: 0, status };
-      if(status === 1) brickCount++;
+      if(status === 1) {
+        // 실제로 그려지는 위치가 캔버스 안에 있는 경우만 brickCount++
+        let brickX = (c*(brickWidth+brickPadding)) + brickOffsetLeft;
+        let brickY = (r*(brickHeight+brickPadding)) + brickOffsetTop;
+        if (
+          brickX >= 0 && brickX+brickWidth <= canvas.width &&
+          brickY >= 0 && brickY+brickHeight <= canvas.height
+        ) {
+          brickCount++;
+        }
+      }
     }
   }
   // 진단용 콘솔 출력
@@ -364,6 +382,7 @@ function increaseBallSpeed() {
 function collisionDetection() {
   console.log('collisionDetection: stage', stage, 'brickCount', brickCount, 'stageTransitioning', stageTransitioning);
   if (stageTransitioning) return;
+  let hit = false;
   for(let c=0; c<brickColumnCount; c++) {
     for(let r=0; r<brickRowCount; r++) {
       let b = bricks[c][r];
@@ -371,13 +390,13 @@ function collisionDetection() {
         let brickX = (c*(brickWidth+brickPadding)) + brickOffsetLeft;
         let brickY = (r*(brickHeight+brickPadding)) + brickOffsetTop;
         if(x > brickX && x < brickX+brickWidth && y > brickY && y < brickY+brickHeight) {
-          dy = -dy;
           b.status = 0;
           score++;
           brickCount--;
-          brickSound.currentTime = 0;
-          brickSound.play();
+          hit = true;
           try {
+            brickSound.currentTime = 0.5;
+            brickSound.play();
             if (window.navigator && navigator.vibrate) {
               navigator.vibrate(30);
             }
@@ -385,6 +404,9 @@ function collisionDetection() {
         }
       }
     }
+  }
+  if(hit) {
+    dy = -dy;
   }
   if(brickCount <= 5 && brickCount > 0) {
     console.log('남은 벽돌 좌표 및 status:');
@@ -401,8 +423,8 @@ function collisionDetection() {
     stageTransitioning = true;
     setTimeout(() => {
       if(stage < maxStage) {
-        // 3스테이지 클리어 보너스
-        if(stage === 3) {
+        // 3, 7스테이지 클리어 보너스
+        if(stage === 3 || stage === 7) {
           lives++;
           playBonusLifeSound();
         }
