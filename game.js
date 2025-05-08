@@ -84,8 +84,15 @@ const brickColors = [
 
 // 모바일 대응: 캔버스 크기 자동 조정 및 동적 크기 계산
 function resizeCanvas() {
-  const w = Math.min(window.innerWidth, window.innerHeight * 0.666);
-  const h = w * 2 / 3;
+  // 9:16 세로형 비율, 최대 100vw, 100vh
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  // 9:16 비율 유지
+  if (h / w > 16/9) {
+    h = w * 16 / 9;
+  } else {
+    w = h * 9 / 16;
+  }
   canvas.width = w;
   canvas.height = h;
   updateSizes();
