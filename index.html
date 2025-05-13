@@ -4,9 +4,22 @@
   <meta charset="UTF-8" />
   <title>고전 벽돌깨기</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta property="og:title" content="복고 벽돌깨기" />
+  <meta property="og:description" content="복고풍 배경의 벽돌깨기 게임! 추억의 땅따먹기와 벽돌깨기의 만남" />
+  <meta property="og:image" content="og_image.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="/index.html" />
 </head>
 <body>
   <canvas id="gameCanvas" width="480" height="320"></canvas>
   <script src="game.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
 </body>
 </html> 
